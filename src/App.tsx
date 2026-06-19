@@ -13,8 +13,8 @@ import {
   Book,
   PenTool,
 } from 'lucide-react';
-import { ref, onValue, runTransaction } from 'firebase/database';
-import { database } from './lib/firebase';
+import { collection, addDoc, doc, onSnapshot, runTransaction, increment, getDocs } from 'firebase/firestore';
+import { db } from './lib/firebase';
 import logo from './assets/log.png';
 import hello from './assets/hello.png';
 import subjectImg from './assets/subject.jpg';
@@ -88,7 +88,7 @@ const features = [
 
 type Page = 'home' | 'login' | 'dashboard';
 
-function LoginPage({ onBack, onLogin }: { onBack: () => void; onLogin: () => void }) {
+function LoginPage({ onBack, onLogin }: { onBack: () => void; onLogin: (email: string) => void }) {
   const loginEmail = String(import.meta.env.VITE_LOGIN_EMAIL || '');
   const loginPassword = String(import.meta.env.VITE_LOGIN_PASSWORD || '');
   const [email, setEmail] = useState('');
@@ -99,7 +99,7 @@ function LoginPage({ onBack, onLogin }: { onBack: () => void; onLogin: () => voi
     event.preventDefault();
     if (email === loginEmail && password === loginPassword) {
       setError('');
-      onLogin();
+      onLogin(email);
     } else {
       setError('Invalid email or password.');
     }
@@ -179,33 +179,37 @@ function DashboardPage({ onLogout }: { onLogout: () => void }) {
   const [totalLogins, setTotalLogins] = useState<number>(0);
 
   useEffect(() => {
-    if (!database) return;
+    if (!db) return;
 
-    const downloadsRef = ref(database, 'downloads/total');
-    const unsubscribeDownloads = onValue(downloadsRef, (snapshot) => {
-      setTotalDownloads(snapshot.val() ?? 0);
-    });
+    // Fetch total downloads from Firestore
+    const fetchDownloads = async () => {
+      try {
+        const downloadDocs = await getDocs(collection(db, 'downloads'));
+        setTotalDownloads(downloadDocs.size);
+      } catch (error) {
+        console.error('Failed to fetch downloads from Firestore', error);
+      }
+    };
 
-    const activeUsersRef = ref(database, 'users/active');
-    const unsubscribeActiveUsers = onValue(activeUsersRef, (snapshot) => {
-      setActiveUsers(snapshot.val() ?? 0);
-    });
+    fetchDownloads();
 
-    const newSignupsRef = ref(database, 'signups/new');
-    const unsubscribeNewSignups = onValue(newSignupsRef, (snapshot) => {
-      setNewSignups(snapshot.val() ?? 0);
-    });
-
-    const loginsRef = ref(database, 'logins/total');
-    const unsubscribeLogins = onValue(loginsRef, (snapshot) => {
-      setTotalLogins(snapshot.val() ?? 0);
-    });
+    const statsRef = doc(db, 'stats/summary');
+    const unsubscribeStats = onSnapshot(
+      statsRef,
+      (snapshot) => {
+        const data = snapshot.data();
+        setTotalDownloads(data?.totalDownloads ?? 0);
+        setActiveUsers(data?.activeUsers ?? 0);
+        setNewSignups(data?.newSignups ?? 0);
+        setTotalLogins(data?.totalLogins ?? 0);
+      },
+      (error) => {
+        console.error('Failed to subscribe to Firestore stats', error);
+      }
+    );
 
     return () => {
-      unsubscribeDownloads();
-      unsubscribeActiveUsers();
-      unsubscribeNewSignups();
-      unsubscribeLogins();
+      unsubscribeStats();
     };
   }, []);
 
@@ -274,34 +278,72 @@ function DashboardPage({ onLogout }: { onLogout: () => void }) {
 
 function App() {
   const [page, setPage] = useState<Page>('home');
+  const [userEmail, setUserEmail] = useState<string>('');
 
   const incrementDownloadCount = async () => {
-    if (!database) {
+    if (!db) {
       return;
     }
 
-    const downloadsRef = ref(database, 'downloads/total');
     try {
-      await runTransaction(downloadsRef, (current) => {
-        return (current || 0) + 1;
+      await addDoc(collection(db, 'downloads'), {
+        email: userEmail || 'anonymous',
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString(),
+        appVersion: '2.1.0',
+        deviceType: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+          ? 'mobile'
+          : 'desktop',
+      });
+
+      const statsRef = doc(db, 'stats/summary');
+      await runTransaction(db, async (transaction) => {
+        const statsDoc = await transaction.get(statsRef);
+        if (!statsDoc.exists()) {
+          transaction.set(statsRef, {
+            totalDownloads: 1,
+            totalLogins: 0,
+            activeUsers: 0,
+            newSignups: 0,
+          });
+        } else {
+          transaction.update(statsRef, {
+            totalDownloads: increment(1),
+          });
+        }
       });
     } catch (error) {
-      console.error('Failed to update download count', error);
+      console.error('Failed to log download event', error);
     }
   };
 
-  const handleLogin = async () => {
+  const handleLogin = async (email?: string) => {
+    if (email) {
+      setUserEmail(email);
+    }
     // Navigate immediately so a database connection issue doesn't block login
     setPage('dashboard');
 
-    if (!database) {
+    if (!db) {
       return;
     }
 
-    const loginRef = ref(database, 'logins/total');
+    const statsRef = doc(db, 'stats/summary');
     try {
-      await runTransaction(loginRef, (current) => {
-        return (current || 0) + 1;
+      await runTransaction(db, async (transaction) => {
+        const statsDoc = await transaction.get(statsRef);
+        if (!statsDoc.exists()) {
+          transaction.set(statsRef, {
+            totalDownloads: 0,
+            totalLogins: 1,
+            activeUsers: 0,
+            newSignups: 0,
+          });
+        } else {
+          transaction.update(statsRef, {
+            totalLogins: increment(1),
+          });
+        }
       });
     } catch (error) {
       console.error('Failed to update login count', error);

@@ -1,0 +1,19 @@
+{
+  "rules": {
+    "downloads": {
+      "total": {
+        ".read": true,
+        ".write": true
+      },
+      "events": {
+        ".read": true,
+        ".write": true,
+        "$eventId": {
+          ".validate": "newData.hasChildren(['email', 'timestamp', 'userAgent', 'appVersion', 'deviceType'])"
+        }
+      }
+    },
+    ".read": false,
+    ".write": false
+  }
+}

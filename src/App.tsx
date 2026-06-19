@@ -89,8 +89,8 @@ const features = [
 type Page = 'home' | 'login' | 'dashboard';
 
 function LoginPage({ onBack, onLogin }: { onBack: () => void; onLogin: (email: string) => void }) {
-  const loginEmail = String(import.meta.env.VITE_LOGIN_EMAIL || '');
-  const loginPassword = String(import.meta.env.VITE_LOGIN_PASSWORD || '');
+  const loginEmail = 'acadex@gmail.com';
+  const loginPassword = 'acadex_app1234';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');

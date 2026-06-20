@@ -6,6 +6,11 @@ service cloud.firestore {
     match /downloads/{document=**} {
       allow read, write: true;
     }
+
+    // Allow stats collection to be written and read
+    match /stats/{document=**} {
+      allow read, write: true;
+    }
     
     // Block everything else by default
     match /{document=**} {

@@ -181,24 +181,22 @@ function DashboardPage({ onLogout }: { onLogout: () => void }) {
   useEffect(() => {
     if (!db) return;
 
-    // Fetch total downloads from Firestore
-    const fetchDownloads = async () => {
-      try {
-        const downloadDocs = await getDocs(collection(db, 'downloads'));
-        setTotalDownloads(downloadDocs.size);
-      } catch (error) {
-        console.error('Failed to fetch downloads from Firestore', error);
+    const downloadsCollection = collection(db, 'downloads');
+    const unsubscribeDownloads = onSnapshot(
+      downloadsCollection,
+      (snapshot) => {
+        setTotalDownloads(snapshot.size);
+      },
+      (error) => {
+        console.error('Failed to subscribe to Firestore downloads', error);
       }
-    };
-
-    fetchDownloads();
+    );
 
     const statsRef = doc(db, 'stats/summary');
     const unsubscribeStats = onSnapshot(
       statsRef,
       (snapshot) => {
         const data = snapshot.data();
-        setTotalDownloads(data?.totalDownloads ?? 0);
         setActiveUsers(data?.activeUsers ?? 0);
         setNewSignups(data?.newSignups ?? 0);
         setTotalLogins(data?.totalLogins ?? 0);
@@ -209,6 +207,7 @@ function DashboardPage({ onLogout }: { onLogout: () => void }) {
     );
 
     return () => {
+      unsubscribeDownloads();
       unsubscribeStats();
     };
   }, []);
@@ -408,7 +407,7 @@ function App() {
               
               <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4">
                 <a
-                  href="/Acadex.apk"
+                  href="./Acadex.apk"
                   download="Acadex.apk"
                   onClick={incrementDownloadCount}
                   className="flex items-center justify-center gap-2 px-8 py-4 bg-[#FF6500] text-white rounded-xl font-bold text-lg hover:bg-[#e65a00] hover:shadow-lg hover:shadow-[#FF6500]/30 transition-all duration-300"
@@ -621,8 +620,8 @@ function App() {
 
             <div className="flex flex-col items-center gap-6">
               <a 
-                href="acadex.apk"
-                download="acadex.apk"
+                href="./Acadex.apk"
+                download="Acadex.apk"
                 onClick={incrementDownloadCount}
                 className="group relative flex items-center justify-center gap-3 px-10 py-5 bg-[#FF6500] text-white rounded-2xl font-bold text-xl hover:bg-[#e65a00] hover:shadow-[0_0_40px_rgba(255,101,0,0.4)] transition-all duration-300"
               >
@@ -662,7 +661,7 @@ function App() {
               <div className="flex gap-6">
                 <a href="#" className="text-base font-medium text-slate-400 hover:text-[#FF6500] transition-colors">Home</a>
                 <a href="#features" className="text-base font-medium text-slate-400 hover:text-[#FF6500] transition-colors">Features</a>
-                <a href="acadex.apk" download="acadex.apk" onClick={incrementDownloadCount} className="text-base font-medium text-slate-400 hover:text-[#FF6500] transition-colors">Download</a>
+                <a href="./Acadex.apk" download="Acadex.apk" onClick={incrementDownloadCount} className="text-base font-medium text-slate-400 hover:text-[#FF6500] transition-colors">Download</a>
                 <a href="#" className="text-base font-medium text-slate-400 hover:text-[#FF6500] transition-colors">Privacy Policy</a>
               </div>
               <p className="text-base text-slate-300">

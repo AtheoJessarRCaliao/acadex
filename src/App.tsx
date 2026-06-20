@@ -13,7 +13,7 @@ import {
   Book,
   PenTool,
 } from 'lucide-react';
-import { collection, addDoc, doc, onSnapshot, runTransaction, increment, getDocs } from 'firebase/firestore';
+import { collection, addDoc, doc, onSnapshot, runTransaction, increment } from 'firebase/firestore';
 import { db } from './lib/firebase';
 import logo from './assets/log.png';
 import hello from './assets/hello.png';

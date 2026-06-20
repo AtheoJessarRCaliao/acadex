@@ -408,8 +408,8 @@ function App() {
               
               <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4">
                 <a
-                  href="acadex.apk"
-                  download="acadex.apk"
+                  href="/Acadex.apk"
+                  download="Acadex.apk"
                   onClick={incrementDownloadCount}
                   className="flex items-center justify-center gap-2 px-8 py-4 bg-[#FF6500] text-white rounded-xl font-bold text-lg hover:bg-[#e65a00] hover:shadow-lg hover:shadow-[#FF6500]/30 transition-all duration-300"
                 >
